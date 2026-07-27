@@ -170,7 +170,7 @@ public class FileHelper {
 	 */
 	public static boolean isFileForAttachment() {
 		String fileHandling = MSysConfig.getValue(ZUGFERD_FILEHANDLING_SYSCONFIGNAME, "Attachment", Env.getAD_Client_ID(Env.getCtx())).toLowerCase();
-		switch(fileHandling) {
+		switch(fileHandling.toLowerCase()) {
 		case "attachment":
 			return true;
 		case "archive":

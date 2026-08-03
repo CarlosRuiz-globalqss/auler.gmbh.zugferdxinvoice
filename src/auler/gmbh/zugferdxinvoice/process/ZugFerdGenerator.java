@@ -38,6 +38,7 @@ import org.compiere.model.MBankAccount;
 import org.compiere.model.MCharge;
 import org.compiere.model.MClient;
 import org.compiere.model.MCountry;
+import org.compiere.model.MCurrency;
 import org.compiere.model.MDocType;
 import org.compiere.model.MInvoice;
 import org.compiere.model.MInvoiceLine;
@@ -223,6 +224,8 @@ public class ZugFerdGenerator {
 		zugFerdInvoice.setIssueDate(invoice.getDateInvoiced());
 		zugFerdInvoice.setDeliveryDate(invoice.getDateInvoiced());
 		zugFerdInvoice.setNumber(invoice.getDocumentNo());
+
+		zugFerdInvoice.setCurrency(MCurrency.getISO_Code(Env.getCtx(), invoice.getC_Currency_ID()));
 
 		MOrg org = new MOrg(Env.getCtx(), invoice.getAD_Org_ID(), null);
 		MOrgInfo orgInfo = MOrgInfo.get(org.getAD_Org_ID());

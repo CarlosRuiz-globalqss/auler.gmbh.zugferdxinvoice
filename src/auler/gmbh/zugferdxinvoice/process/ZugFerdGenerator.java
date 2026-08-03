@@ -52,10 +52,7 @@ import org.compiere.model.MTax;
 import org.compiere.model.MUOM;
 import org.compiere.model.MUser;
 import org.compiere.model.PrintInfo;
-import org.compiere.print.MPrintFormat;
 import org.compiere.print.ReportEngine;
-import org.compiere.process.ProcessInfo;
-import org.compiere.process.ServerProcessCtl;
 import org.compiere.tools.FileUtil;
 import org.compiere.util.CLogger;
 import org.compiere.util.Env;
@@ -96,18 +93,9 @@ public class ZugFerdGenerator {
 
 	public File generateInvoicePDF() {
 		ReportEngine re = ReportEngine.get(Env.getCtx(), ReportEngine.INVOICE, invoice.getC_Invoice_ID());
-		MPrintFormat format = re.getPrintFormat();
-		File pdfFile = null;
-		if (format.getJasperProcess_ID() > 0) {
-			ProcessInfo pi = new ProcessInfo("", format.getJasperProcess_ID());
-			pi.setRecord_ID(invoice.getC_Invoice_ID());
-			pi.setIsBatch(true);	
-
-			ServerProcessCtl.process(pi, null);
-			pdfFile = pi.getPDFReport();
-		} else {
-			pdfFile = re.getPDF(pdfFile);
-		}
+		if (re.getPrintFormat() != null && re.getPrintFormat().getLanguage() != null)
+			setLanguage(re.getPrintFormat().getLanguage().getAD_Language());
+		File pdfFile = re.getPDF();
 
 		log.info("PDF Created: " + pdfFile.getName());
 

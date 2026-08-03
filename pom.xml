@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>auler.gmbh.zugferdxinvoice</groupId>
 	<artifactId>auler.gmbh.zugferdxinvoice</artifactId>
-	<version>11.0.0-SNAPSHOT</version>
+	<version>11.0.6-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<properties>
@@ -40,78 +40,15 @@
 						<artifactItem>
 							<groupId>org.mustangproject</groupId>
 							<artifactId>library</artifactId>
-							<version>2.10.0</version>
+							<version>2.20.0</version>
+							<classifier>shaded</classifier>
 						</artifactItem>
 						<artifactItem>
 							<groupId>org.mustangproject</groupId>
 							<artifactId>validator</artifactId>
-							<version>2.10.0</version>
+							<version>2.20.0</version>
+							<classifier>shaded</classifier>
 						</artifactItem>
-						<artifactItem>
-							<groupId>org.apache.pdfbox</groupId>
-							<artifactId>preflight</artifactId>
-							<version>2.0.30</version>
-						</artifactItem>
-						<artifactItem>
-							<groupId>org.apache.pdfbox</groupId>
-							<artifactId>pdfbox</artifactId>
-						<version>2.0.30</version>
-						</artifactItem>
-						<artifactItem>
-							<groupId>org.apache.pdfbox</groupId>
-							<artifactId>fontbox</artifactId>
-							<version>2.0.30</version>
-						</artifactItem>
-						<artifactItem>
-							<groupId>org.apache.pdfbox</groupId>
-							<artifactId>xmpbox</artifactId>
-							<version>2.0.30</version>
-						</artifactItem>
-						<artifactItem>
-    						<groupId>net.sf.saxon</groupId>
-    						<artifactId>Saxon-HE</artifactId>
-    						<version>12.4</version>
-						</artifactItem>
-						<artifactItem>
-						    <groupId>org.apache.xmlgraphics</groupId>
-    						<artifactId>fop</artifactId>
-    						<version>2.8</version>
-						</artifactItem>
-						<artifactItem>
-            				<groupId>jakarta.xml.bind</groupId>
-            				<artifactId>jakarta.xml.bind-api</artifactId>
-            				<version>4.0.2</version>
-						</artifactItem>
-						<artifactItem>
-            				<groupId>org.eclipse.angus</groupId>
-            				<artifactId>angus-activation</artifactId>
-            				<version>2.0.2</version>
-            			</artifactItem>
-						<artifactItem>
-    						<groupId>commons-io</groupId>
-    						<artifactId>commons-io</artifactId>
-    						<version>2.16.1</version>
-						</artifactItem>
-						<artifactItem>
-    						<groupId>org.xmlresolver</groupId>
-    						<artifactId>xmlresolver</artifactId>
-    						<version>6.0.4</version>
-						</artifactItem>
-						<artifactItem>
-           					<groupId>org.dom4j</groupId>
-            				<artifactId>dom4j</artifactId>
-            				<version>2.1.4</version>
-						</artifactItem>
-						<artifactItem>
-						    <groupId>org.apache.xmlgraphics</groupId>
-    						<artifactId>xmlgraphics-commons</artifactId>
-    						<version>2.6</version>
-						</artifactItem>
-						<artifactItem>
-							<groupId>org.apache.xmlgraphics</groupId>
-    						<artifactId>batik-all</artifactId>
-    						<version>1.17</version>
-    					</artifactItem>
 				</artifactItems>
 					<outputDirectory>lib</outputDirectory>
 					<overWriteReleases>false</overWriteReleases>
@@ -122,5 +59,5 @@
 		</plugins>
 	
 	</build>
-	    
- </project>
+
+</project>

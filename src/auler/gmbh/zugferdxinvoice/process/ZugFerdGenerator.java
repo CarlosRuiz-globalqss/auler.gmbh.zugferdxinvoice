@@ -25,6 +25,9 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Serializable;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Timestamp;
 
 import org.adempiere.exceptions.AdempiereException;
@@ -42,10 +45,13 @@ import org.compiere.model.MDocType;
 import org.compiere.model.MInvoice;
 import org.compiere.model.MInvoiceLine;
 import org.compiere.model.MLocation;
+import org.compiere.model.MOrder;
 import org.compiere.model.MOrg;
 import org.compiere.model.MOrgInfo;
 import org.compiere.model.MPaymentTerm;
+import org.compiere.model.MPriceList;
 import org.compiere.model.MProduct;
+import org.compiere.model.MProject;
 import org.compiere.model.MSysConfig;
 import org.compiere.model.MTax;
 import org.compiere.model.MUOM;
@@ -57,6 +63,7 @@ import org.compiere.process.ProcessInfo;
 import org.compiere.process.ServerProcessCtl;
 import org.compiere.tools.FileUtil;
 import org.compiere.util.CLogger;
+import org.compiere.util.DB;
 import org.compiere.util.Env;
 import org.compiere.util.Language;
 import org.compiere.util.Util;
@@ -71,8 +78,20 @@ import org.mustangproject.ZUGFeRD.Profiles;
 import org.mustangproject.ZUGFeRD.ZUGFeRD2PullProvider;
 import org.mustangproject.ZUGFeRD.ZUGFeRDExporterFromA1;
 
+import com.helger.commons.error.list.ErrorList;
+import com.helger.en16931.cii2ubl.CIIToUBL21Converter;
+import com.helger.en16931.cii2ubl.CIIToUBL22Converter;
+import com.helger.en16931.cii2ubl.CIIToUBL23Converter;
+import com.helger.en16931.cii2ubl.CIIToUBL24Converter;
+import com.helger.ubl21.UBL21Marshaller;
+import com.helger.ubl22.UBL22Marshaller;
+import com.helger.ubl23.UBL23Marshaller;
+import com.helger.ubl24.UBL24Marshaller;
+
 import auler.gmbh.zugferdxinvoice.process.ZUGFeRD.patpaymentterms;
 import auler.gmbh.zugferdxinvoice.utils.FileHelper;
+
+
 
 public class ZugFerdGenerator {
 
@@ -145,23 +164,23 @@ public class ZugFerdGenerator {
 				bank.getSwiftCode() != null && bank.getName() != null;
 	}
 	
-	public void generateAndSaveXRechnungXML() throws IOException {
-		File file = generateXRechnungXML();
+	public void generateAndSaveXRechnungXML(Boolean useubl, String ublversion) throws IOException {
+		File file = generateXRechnungXML(useubl, ublversion);
 		saveFileInSystem(file);
 	}
 	
-	public File generateXRechnungXML() throws IOException {
+	public File generateXRechnungXML(Boolean useubl, String ublversion) throws IOException {
 		if (Util.isEmpty(getReferenceNo())) {
 			throw new AdempiereException("Leitweg-ID is mandatory for XRechnung");
 		}
 		Invoice zugFerdInvoice = generateZUGFeRDInvoice();
-
 		ZUGFeRD2PullProvider zf2p = new ZUGFeRD2PullProvider();
 		zf2p.setProfile(Profiles.getByName("XRechnung"));
 		zf2p.generateXML(zugFerdInvoice);
 		String theXML = new String(zf2p.getXML());
 		String fileName = FileHelper.getDefaultFileName(invoice, "xml");
 		File outputFile = FileUtil.createFile(fileName);
+		
 		BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile));
 		try {
 			writer.write(theXML);
@@ -170,10 +189,45 @@ public class ZugFerdGenerator {
 		} finally {
 			writer.close();
 		}
+
+		// Convert to UBL
+		if(useubl) {
+			 Serializable ubloutput= null;
+			 ErrorList errorlist = new ErrorList();
+			if(ublversion.equals("UBL2.1")) {
+				final CIIToUBL21Converter cc21 = new CIIToUBL21Converter();
+				ubloutput = cc21.convertCIItoUBL(outputFile, errorlist);
+				   UBL21Marshaller.invoice ()
+				   .setFormattedOutput (true)
+				   .write ((oasis.names.specification.ubl.schema.xsd.invoice_21.InvoiceType) ubloutput, outputFile);
+			}
+			if(ublversion.equals("UBL2.2")) {
+				final CIIToUBL22Converter cc22 = new CIIToUBL22Converter();
+				ubloutput = cc22.convertCIItoUBL(outputFile, errorlist);
+				   UBL22Marshaller.invoice ()
+				   .setFormattedOutput (true)
+				   .write ((oasis.names.specification.ubl.schema.xsd.invoice_22.InvoiceType) ubloutput, outputFile);
+			}
+			if(ublversion.equals("UBL2.3")) {
+				final CIIToUBL23Converter cc23 = new CIIToUBL23Converter();
+				ubloutput = cc23.convertCIItoUBL(outputFile, errorlist);
+				   UBL23Marshaller.invoice ()
+				   .setFormattedOutput (true)
+				   .write ((oasis.names.specification.ubl.schema.xsd.invoice_23.InvoiceType) ubloutput, outputFile);
+			}
+			if(ublversion.equals("UBL2.4")) {
+				final CIIToUBL24Converter cc24 = new CIIToUBL24Converter();
+				ubloutput = cc24.convertCIItoUBL(outputFile, errorlist);
+				   UBL24Marshaller.invoice ()
+				   .setFormattedOutput (true)
+				   .write ((oasis.names.specification.ubl.schema.xsd.invoice_24.InvoiceType) ubloutput, outputFile);
+			}
+
+		}	
 		
 		return outputFile;
 	}
-
+	
 	public void generateAndEmbeddXML(File pdfFile) throws IOException {
 		generateZugFerdXML(pdfFile);
 		savePdfFile(pdfFile);
@@ -213,15 +267,29 @@ public class ZugFerdGenerator {
 		MUser invoiceUser = MUser.get(invoice.getAD_User_ID());
 
 		patpaymentterms pt = new patpaymentterms(invoice, language);
-		zugFerdInvoice.setPaymentTerms(pt);
+//		zugFerdInvoice.setPaymentTerms(pt);
 
 		Timestamp duedate = (Timestamp) pt.getDueDate();
 		zugFerdInvoice.setDueDate(duedate);
 
-		MPaymentTerm paymentTerm = new MPaymentTerm(Env.getCtx(), invoice.getC_PaymentTerm_ID(), invoice.get_TrxName());
-		zugFerdInvoice.setPaymentTermDescription(paymentTerm.get_Translation("Name", language, false, true));
+		zugFerdInvoice.setPaymentTermDescription(pt.getDescription());
 		zugFerdInvoice.setIssueDate(invoice.getDateInvoiced());
-		zugFerdInvoice.setDeliveryDate(invoice.getDateInvoiced());
+		if(invoice.getC_Project_ID()>0) {
+			MProject project = new MProject(Env.getCtx(), invoice.getC_Project_ID(), invoice.get_TrxName());		
+			zugFerdInvoice.setSpecifiedProcuringProjectID(project.getValue());
+			zugFerdInvoice.setSpecifiedProcuringProjectName(project.getName());
+		}
+		if(invoice.getC_Order_ID()>0) {
+			MOrder order = new MOrder(Env.getCtx(), invoice.getC_Order_ID(), invoice.get_TrxName());
+			zugFerdInvoice.setSellerOrderReferencedDocumentID(order.getDocumentNo());
+		}
+		if(isCollectiveInvoice(invoice)){
+			zugFerdInvoice.setDetailedDeliveryPeriod(getMovementDateFirst(invoice), getMovementDateLast(invoice));
+		} else if(getMovementDateLast(invoice)!= null){
+			zugFerdInvoice.setDeliveryDate(getMovementDateLast(invoice));
+		} else {
+			zugFerdInvoice.setDeliveryDate(invoice.getDateInvoiced());
+		}
 		zugFerdInvoice.setNumber(invoice.getDocumentNo());
 
 		MOrg org = new MOrg(Env.getCtx(), invoice.getAD_Org_ID(), null);
@@ -275,7 +343,9 @@ public class ZugFerdGenerator {
 
 		//Leitweg-ID
 		zugFerdInvoice.setReferenceNumber(getReferenceNo());
-		zugFerdInvoice.setBuyerOrderReferencedDocumentID(invoice.getPOReference());
+		
+		if (!Util.isEmpty(invoice.getPOReference()))
+			zugFerdInvoice.setBuyerOrderReferencedDocumentID(invoice.getPOReference());
 	}
 	
 	private String generateAddressString(MLocation location) {
@@ -308,7 +378,9 @@ public class ZugFerdGenerator {
 
 			MUOM unitOfMeasure = MUOM.get(invoiceLine.getC_UOM_ID());
 			String uom = unitOfMeasure.getUNCEFACT();
-
+			MTax tax = MTax.get(invoiceLine.getC_Tax_ID());
+			MPriceList plist = new MPriceList(Env.getCtx(), invoice.getM_PriceList_ID(), null);
+			
 			if (invoiceLine.isDescription() || (invoiceLine.getM_Product_ID() == 0 && invoiceLine.getC_Charge_ID() == 0)) {
 				Product product = new Product();
 				product.setName("Descriptionline");
@@ -329,20 +401,31 @@ public class ZugFerdGenerator {
 				MProduct productLine = MProduct.get(invoiceLine.getM_Product_ID());
 				product.setName(productLine.get_Translation("Name", language, false, true));
 				product.setDescription(safeString(invoiceLine.getDescription()));
-				MTax tax = MTax.get(invoiceLine.getC_Tax_ID());
 				product.setVATPercent(tax.getRate());
 				product.setUnit(uom);
 				product.setSellerAssignedID(productLine.getValue());
-
 				item.setProduct(product);
 				if (isARC)
 					item.setQuantity(invoiceLine.getQtyInvoiced().negate());
 				else
 					item.setQuantity(invoiceLine.getQtyInvoiced());
-
-				item.setPrice(invoiceLine.getPriceActual());
+				
+				if(plist.isTaxIncluded() && (tax.getRate().compareTo(BigDecimal.ZERO)>0)) {
+			
+					item.setPrice(
+							invoiceLine.getPriceActual()
+							.divide(BigDecimal.ONE
+									.add(tax.getRate()
+											.divide(new BigDecimal("100"))), 12, RoundingMode.HALF_UP)					
+					);
+				}else {
+					item.setPrice(invoiceLine.getPriceActual());
+				}
 				item.setTax(invoiceLine.getTaxAmt());
-				item.setLineTotalAmount(invoiceLine.getLineTotalAmt());
+				//item.setLineTotalAmount(invoiceLine.getLineTotalAmt());
+				if(isCollectiveInvoice(invoice) && (invoiceLine.getM_InOutLine_ID()>0)){
+					item.setDetailedDeliveryPeriod(getMovementDate(invoiceLine), getMovementDate(invoiceLine));
+				}
 				zugFerdInvoice.addItem(item);
 			} else if (invoiceLine.getC_Charge_ID() > 0) {
 
@@ -350,7 +433,6 @@ public class ZugFerdGenerator {
 				MCharge charge = MCharge.get(invoiceLine.getC_Charge_ID());
 				product.setName(charge.get_Translation("Name", language, false, true));
 				product.setDescription(safeString(invoiceLine.getDescription()));
-				MTax tax = MTax.get(invoiceLine.getC_Tax_ID());
 				product.setVATPercent(tax.getRate());
 				product.setUnit(CD_UOM);
 
@@ -359,9 +441,23 @@ public class ZugFerdGenerator {
 					item.setQuantity(invoiceLine.getQtyInvoiced().negate());
 				else
 					item.setQuantity(invoiceLine.getQtyInvoiced());
-				item.setPrice(invoiceLine.getPriceActual());
+				
+				if(plist.isTaxIncluded() && (tax.getRate().compareTo(BigDecimal.ZERO)>0)) {
+					
+					item.setPrice(
+							invoiceLine.getPriceActual()
+							.divide(BigDecimal.ONE
+									.add(tax.getRate()
+											.divide(new BigDecimal("100"))), 12, RoundingMode.HALF_UP)					
+					);
+				}else {
+					item.setPrice(invoiceLine.getPriceActual());
+				}
 				item.setTax(invoiceLine.getTaxAmt());
-				item.setLineTotalAmount(invoiceLine.getLineTotalAmt());
+				//item.setLineTotalAmount(invoiceLine.getLineTotalAmt());
+				if(isCollectiveInvoice(invoice) && (invoiceLine.getM_InOutLine_ID()>0)){
+					item.setDetailedDeliveryPeriod(getMovementDate(invoiceLine), getMovementDate(invoiceLine));
+				}
 				zugFerdInvoice.addItem(item);
 			}
 		}
@@ -457,6 +553,78 @@ public class ZugFerdGenerator {
 	 */
 	private String safeString(String value) {
 	    return Util.isEmpty(value, true) ? "" : value;
+	}
+
+	private Boolean isCollectiveInvoice(MInvoice invoice) {
+		
+		String sql ="SELECT COUNT(MOVEMENTDATE) FROM\n"
+				+ "(SELECT\n"
+				+ "	IO.MOVEMENTDATE\n"
+				+ "FROM\n"
+				+ "	M_INOUTLINE IOL\n"
+				+ "	  JOIN C_INVOICELINE IL ON IL.M_INOUTLINE_ID = IOL.M_INOUTLINE_ID\n"
+				+ "	  JOIN M_INOUT IO ON IO.M_INOUT_ID = IOL.M_INOUT_ID\n"
+				+ "WHERE\n"
+				+ " IL.C_INVOICE_ID = ?\n"
+				+ "GROUP BY\n"
+				+ "	IO.MOVEMENTDATE\n)";
+				
+		Integer ret = DB.getSQLValue(null, sql, invoice.getC_Invoice_ID());
+		
+		return (ret>1)?true:false;
+		
+	}
+
+	private Timestamp getMovementDateFirst(MInvoice invoice) {
+		
+		String sql ="SELECT\n"
+				+ "	MIN(IO.MOVEMENTDATE)\n"
+				+ "FROM\n"
+				+ "	M_INOUTLINE IOL\n"
+				+ "	JOIN C_INVOICELINE IL ON IL.M_INOUTLINE_ID = IOL.M_INOUTLINE_ID\n"
+				+ "	JOIN M_INOUT IO ON IO.M_INOUT_ID = IOL.M_INOUT_ID\n"
+				+ "WHERE\n"
+				+ "	IL.C_INVOICE_ID = ?\n"
+				+ "GROUP BY\n"
+				+ "	IO.MOVEMENTDATE";
+		
+		Timestamp MovementDateFirst = DB.getSQLValueTS(null, sql, invoice.getC_Invoice_ID());
+		
+		return MovementDateFirst;
+	}
+
+	private Timestamp getMovementDateLast(MInvoice invoice) {
+
+		String sql ="SELECT\n"
+				+ "	MAX(IO.MOVEMENTDATE)\n"
+				+ "FROM\n"
+				+ "	M_INOUTLINE IOL\n"
+				+ "	JOIN C_INVOICELINE IL ON IL.M_INOUTLINE_ID = IOL.M_INOUTLINE_ID\n"
+				+ "	JOIN M_INOUT IO ON IO.M_INOUT_ID = IOL.M_INOUT_ID\n"
+				+ "WHERE\n"
+				+ "	IL.C_INVOICE_ID = ?\n"
+				+ "GROUP BY\n"
+				+ "	IO.MOVEMENTDATE";
+		
+		Timestamp MovementDateLast = DB.getSQLValueTS(null, sql, invoice.getC_Invoice_ID());
+		
+		return MovementDateLast;
+	}
+	
+	private Timestamp getMovementDate(MInvoiceLine line) {
+
+		String sql ="SELECT\n"
+				+ "	IO.MOVEMENTDATE\n"
+				+ "FROM\n"
+				+ "	M_INOUTLINE IOL\n"
+				+ "	JOIN C_INVOICELINE IL ON IL.M_INOUTLINE_ID = IOL.M_INOUTLINE_ID\n"
+				+ "	JOIN M_INOUT IO ON IO.M_INOUT_ID = IOL.M_INOUT_ID\n"
+				+ "WHERE\n"
+				+ "	IL.C_INVOICELINE_ID = ?";
+		
+		Timestamp MovementDateLast = DB.getSQLValueTS(null, sql, line.getC_InvoiceLine_ID());
+		
+		return MovementDateLast;
 	}
 
 }

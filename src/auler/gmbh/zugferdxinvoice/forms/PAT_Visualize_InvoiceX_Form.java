@@ -42,7 +42,7 @@ import org.compiere.util.CLogger;
 import org.compiere.util.Env;
 import org.compiere.util.Msg;
 import org.mustangproject.Invoice;
-import org.mustangproject.ZUGFeRD.ZUGFeRDInvoiceImporter;
+import org.mustangproject.ZUGFeRD.ZUGFeRDImporter;
 import org.mustangproject.ZUGFeRD.ZUGFeRDVisualizer;
 import org.mustangproject.ZUGFeRD.ZUGFeRDVisualizer.Language;
 import org.zkoss.util.media.AMedia;
@@ -84,7 +84,7 @@ public class PAT_Visualize_InvoiceX_Form extends Window implements EventListener
 
 	
 	//*******************************
-	ZUGFeRDInvoiceImporter docimporter = null;
+	ZUGFeRDImporter docimporter = null;
 	ZUGFeRDVisualizer zvi = null;
 	Invoice invoice= null;
 	String xmlFilename = "/tmp/factur-x.xml";
@@ -160,6 +160,7 @@ public class PAT_Visualize_InvoiceX_Form extends Window implements EventListener
 		
 
 		LayoutUtils.addSclass("dialog-footer", confirmPanel);
+		confirmPanel.getButton("Cancel").setVisible(false);
 		confirmPanel.addActionListener(this);
 		south.appendChild(confirmPanel);
 
@@ -198,7 +199,7 @@ public class PAT_Visualize_InvoiceX_Form extends Window implements EventListener
 		if (isXMLFile(docFile)) {
 			openFile(docFile.getPath());
 		} else {
-			docimporter = new ZUGFeRDInvoiceImporter(docFile.getPath());
+			docimporter = new ZUGFeRDImporter(docFile.getPath());
 			if (docimporter.canParse()) {
 				File xmlfile = new File(xmlFilename);
 				FileOutputStream out = new FileOutputStream(xmlfile);

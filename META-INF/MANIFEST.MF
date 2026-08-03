@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: ZugferdXInvoice
 Bundle-SymbolicName: auler.gmbh.zugferdxinvoice;singleton:=true
-Bundle-Version: 11.0.0.qualifier
+Bundle-Version: 11.0.6.qualifier
 Export-Package: auler.gmbh.zugferdxinvoice.process
 Bundle-Vendor: Patric Massing(Hans Auler GmbH)
 Automatic-Module-Name: gmbh.auler.zugferdxinvoice
@@ -33,20 +33,7 @@ Import-Package: javax.xml.transform,
  org.zkoss.zul;version="9.6.4",
  org.zkoss.zul.impl
 Bundle-ClassPath: .,
- lib/library-2.10.0.jar,
- lib/validator-2.10.0.jar,
- lib/Saxon-HE-12.4.jar,
- lib/xmlresolver-6.0.4.jar,
- lib/commons-io-2.16.1.jar,
- lib/angus-activation-2.0.2.jar,
- lib/dom4j-2.1.4.jar,
- lib/jakarta.xml.bind-api-4.0.2.jar,
- lib/xmlgraphics-commons-2.6.jar,
- lib/fop-2.8.jar,
- lib/batik-all-1.17.jar,
- lib/xmpbox-2.0.30.jar,
- lib/pdfbox-2.0.30.jar,
- lib/preflight-2.0.30.jar,
- lib/fontbox-2.0.30.jar
+ lib/library-2.20.0-shaded.jar,
+ lib/validator-2.20.0-shaded.jar
 Bundle-ActivationPolicy: lazy
 Bundle-Activator: org.adempiere.plugin.utils.Incremental2PackActivator
